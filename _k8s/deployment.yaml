@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-be-authentication
+spec:
+  selector:
+    app: app-be-authentication
+  ports:
+    - protocol: "TCP"
+      port: 3002
+      targetPort: 3002
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-be-authentication
+spec:
+  selector:
+    matchLabels:
+      app: app-be-authentication
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: app-be-authentication
+    spec:
+      containers:
+        - name: app-be-authentication
+          image: app-be-authentication:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3002
+              protocol: TCP
+          env:
+            - name: NEST_APP_NAME
+              value: "app-be-authentication"
+            - name: NEST_API_PORT
+              value: "3002"
+            - name: NEST_MQ_CONNECTION_STRING
+              value: "kubemq-cluster-grpc.kubemq:50000"
+            - name: NEST_MONGODB_CONNECTION_STRING
+              value: "mongodb+srv://attila:Idq2fdKRxWMceDx4@cluster0.ml4i0.mongodb.net/nestjs-practise?retryWrites=true&w=majority"
