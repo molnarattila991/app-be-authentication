@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: app-be-authentication
-          image: app-be-authentication:v1.0.0
+          image: app-be-authentication:v1.0.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3002
