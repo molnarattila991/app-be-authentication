@@ -34,7 +34,9 @@
     "rxjs": "7.5.5",
     "moat-lib-be-pubsub": "1.0.5",
     "@nestjs/mongoose": "9.2.0",
-    "mongoose": "6.4.4"
+    "mongoose": "6.4.4",
+    "dotenv": "16.0.1",
+    "redis": "4.2.0"
   },
   "devDependencies": {
     "@nestjs/cli": "9.0.0",

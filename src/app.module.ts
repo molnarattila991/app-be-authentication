@@ -5,23 +5,32 @@ import { AuthModule } from './features/auth/auth.module';
 import { BusModule } from 'moat-lib-be-pubsub/pub-sub';
 import { MongooseModule, MongooseModuleOptions } from '@nestjs/mongoose';
 import { User, UserSchema } from './models/schemas/user.schema';
+import { ENV } from './constatns/env';
+import { AuthToken, AuthTokenSchema } from './models/schemas/token.schema';
 
 @Module({
   imports: [
     AuthModule,
-    MongooseModule.forRoot(process.env["NEST_MONGODB_CONNECTION_STRING"],
+    MongooseModule.forRoot(
+      ENV.mongoDB.connectionString,
       <MongooseModuleOptions>{
         useNewUrlParser: true, useUnifiedTopology: true, serverApi: "1",
-        dbName: process.env["NEST_MONGODB_DB_NAME"]
+        dbName: ENV.mongoDB.name
       }),
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }])
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: AuthToken.name, schema: AuthTokenSchema }
+    ])
   ],
   controllers: [
     AppController
   ],
   providers: [
     AppService,
-    BusModule.initConsumer(process.env["NEST_APP_NAME"], process.env["NEST_MQ_CONNECTION_STRING"])
+    BusModule.initConsumer(
+      ENV.app.name,
+      ENV.message.connectionString
+    )
   ],
 })
 export class AppModule { }
