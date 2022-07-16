@@ -35,4 +35,10 @@ export class AppController {
   async get(@Request() req) {
     return req.user;
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/validate')
+  async validate(@Request() req) {
+    return true;
+  }
 }

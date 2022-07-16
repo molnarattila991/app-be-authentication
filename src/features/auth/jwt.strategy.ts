@@ -1,17 +1,15 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { jwtConstants } from './constants';
-import { InjectModel } from '@nestjs/mongoose';
-import { AuthToken, AuthTokenDocument } from 'src/models/schemas/token.schema';
-import { Model } from 'mongoose';
-import { RedisService } from 'src/services/redis/redis.service';
+import { TokenValidationCheckerService } from './token-validation-checker/token-validation-checker.service';
+import { ExtractJwtTokenFromHeaderService, IExtractToken } from './extract-token/extract-token.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    @InjectModel(AuthToken.name) private authTokenModel: Model<AuthTokenDocument>,
-    private redis: RedisService
+    private tokenChecker: TokenValidationCheckerService,
+    @Inject(ExtractJwtTokenFromHeaderService) private tokenExtract: IExtractToken
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -22,23 +20,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(req: Request, payload: any) {
-    const token: string = JSON.stringify(req.headers["authorization"].split(" ")[1]).replace('"', "").replace('"', "");
-    console.log(token);
-    console.log(await this.redis.get(token));
-    const redisToken = await this.redis.get(token);
-    if (redisToken) {
-      if (redisToken == "valid") {
-        return { userId: payload.sub, username: payload.username };
-      } else {
-        throw new UnauthorizedException();
-      }
+    const token: string = this.tokenExtract.extract(req);
+    const tokenIsValid = await this.tokenChecker.check(token);
+
+    if (tokenIsValid) {
+      return { userId: payload.sub, username: payload.username };
     } else {
-      const dbToken = await this.authTokenModel.findOne({ token });
-      if (dbToken && dbToken.invalidated == false) {
-        return { userId: payload.sub, username: payload.username };
-      } else {
-        throw new UnauthorizedException();
-      }
+      throw new UnauthorizedException();
     }
   }
 }

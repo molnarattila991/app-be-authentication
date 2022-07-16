@@ -5,11 +5,15 @@ import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
 import { AuthService } from './auth/auth.service';
 import { JwtStrategy } from './jwt.strategy';
-import { User, UserSchema } from 'src/models/schemas/user.schema';
-import { MongooseModule } from '@nestjs/mongoose';
-import { RedisService } from 'src/services/redis/redis.service';
+import { User, UserDocument, UserSchema } from 'src/models/schemas/user.schema';
+import { InjectModel, MongooseModule } from '@nestjs/mongoose';
 import { ENV } from 'src/constatns/env';
-import { AuthToken, AuthTokenSchema } from 'src/models/schemas/token.schema';
+import { AuthToken, AuthTokenDocument, AuthTokenSchema } from 'src/models/schemas/token.schema';
+import { TokenValidationCheckerService } from './token-validation-checker/token-validation-checker.service';
+import { ExtractJwtTokenFromHeaderService } from './extract-token/extract-token.service';
+import { TokenCreateService } from './token-create/token-create.service';
+import { RedisService } from './redis/redis.service';
+import { Model } from 'mongoose';
 
 @Module({
   imports: [
@@ -27,9 +31,33 @@ import { AuthToken, AuthTokenSchema } from 'src/models/schemas/token.schema';
     AuthService,
     LocalStrategy,
     JwtStrategy,
-    RedisService
-    //UsersService
+    RedisService,
+    TokenValidationCheckerService,
+    ExtractJwtTokenFromHeaderService,
+    TokenCreateService
   ],
   exports: [AuthService],
 })
-export class AuthModule { }
+export class AuthModule {
+  public constructor(
+    @InjectModel(AuthToken.name) private authTokenModel: Model<AuthTokenDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>
+  ) {
+    this.initAuthTokenCollection();
+    this.initUserCollection();
+  }
+
+  private async initAuthTokenCollection() {
+    await this.authTokenModel.createCollection<AuthTokenDocument>();
+    if (await this.authTokenModel.collection.indexExists("ttl") == false) {
+      this.authTokenModel.collection.createIndex({ ttl: 1 }, { expireAfterSeconds: ENV.auth.ttl });
+    }
+  }
+
+  private async initUserCollection() {
+    await this.userModel.createCollection<UserDocument>();
+    if (await this.userModel.collection.indexExists("email") == false) {
+      this.userModel.collection.createIndex({ email: 1 }, { unique: true });
+    }
+  }
+}
